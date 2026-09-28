@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dev/social — Meet Before the Pull Request</title>
+<style>
+  :root {
+    --bg:#0d1117; --s1:#161b22; --s2:#1c2330; --bd:#30363d; --fg:#e6edf3; --mut:#8b949e; --dim:#6e7681;
+    --blue:#58a6ff; --green:#3fb950; --purple:#a371f7; --orange:#f0883e; --red:#f85149; --pink:#f778ba; --yellow:#d29922;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; background:#010409; color:var(--fg); overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  #stage { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  #deck { width:1280px; height:720px; position:relative; flex:none; transform-origin:center; }
+  .slide { position:absolute; inset:0; background:var(--bg); padding:34px 48px 30px; display:none; flex-direction:column; overflow:hidden; }
+  .slide.active { display:flex; }
+  .kicker { font-family:ui-monospace,Menlo,monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); margin-bottom:6px; }
+  h1 { font-size:40px; line-height:1.08; letter-spacing:-.025em; }
+  h2 { font-size:30px; line-height:1.12; letter-spacing:-.02em; margin-bottom:16px; }
+  h3 { font-size:13px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--mut); margin-bottom:8px; }
+  p { font-size:14px; line-height:1.45; color:#c9d1d9; }
+  b { color:var(--fg); }
+  .logo { font-family:ui-monospace,Menlo,monospace; font-weight:700; }
+  .logo .a { color:var(--blue); } .logo .b { color:var(--green); }
+  .card { background:var(--s1); border:1px solid var(--bd); border-radius:14px; padding:14px 16px; }
+  .row { display:flex; gap:14px; }
+  .col { display:flex; flex-direction:column; gap:12px; }
+  .big { font-size:34px; font-weight:750; letter-spacing:-.03em; line-height:1; }
+  .lab { font-size:12.5px; color:var(--mut); line-height:1.35; margin-top:5px; }
+  .src { margin-top:auto; padding-top:8px; font-size:10.5px; color:var(--dim); line-height:1.4; }
+  .src a { color:var(--dim); }
+  .pg { position:absolute; right:48px; bottom:12px; font-family:ui-monospace,Menlo,monospace; font-size:11px; color:var(--dim); }
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid var(--bd); color:#c9d1d9; background:var(--s1); }
+  .dot { width:8px; height:8px; border-radius:50%; display:inline-block; flex:none; }
+  svg text { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; }
+  svg .m { font-family:ui-monospace,Menlo,monospace; }
+
+  /* phones */
+  .phone { width:172px; height:360px; border-radius:26px; border:2px solid #3a414b; background:#0a0e14; padding:14px 10px; position:relative; flex:none; overflow:hidden; }
+  .phone .t { font-size:10px; color:var(--mut); font-family:ui-monospace,monospace; margin-bottom:8px; text-align:center; }
+  .phone .in { font-size:11.5px; line-height:1.4; }
+
+  #dots { position:fixed; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:5; }
+  #dots button { width:9px; height:9px; border-radius:50%; border:0; background:#30363d; cursor:pointer; }
+  #dots button.on { background:var(--blue); }
+  #hint { position:fixed; bottom:8px; right:14px; font-size:11px; color:#6e7681; font-family:ui-monospace,monospace; }
+  #notes { position:fixed; left:0; right:0; bottom:0; max-height:34vh; overflow:auto; background:#161b22ee; border-top:1px solid var(--bd);
+    padding:14px 22px 30px; font-size:15px; line-height:1.55; color:#e6edf3; display:none; z-index:10; }
+  #notes.on { display:block; }
+  #notes b { color:var(--blue); }
+
+  @media print {
+    @page { size:1280px 720px; margin:0; }
+    html,body { overflow:visible; height:auto; background:var(--bg); }
+    #stage { position:static; display:block; }
+    #deck { transform:none!important; height:auto; }
+    .slide { display:flex!important; position:relative; height:720px; break-after:page; }
+    #dots,#hint,#notes { display:none!important; }
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+</style>
+</head>
+<body>
+<div id="stage"><div id="deck">
+
+<!-- ================= 1 · THE INSIGHT ================= -->
+<section class="slide active" data-notes="I'm a developer and I've felt this myself: I ship a side project and it goes nowhere, or I want to help on a project and I don't know anyone there. Then I looked at the data and the problem is getting worse, fast. AI made writing code almost free. Merged pull requests on GitHub went from 25M a month to 90M in three years, and GitHub's own framing is that the cost to create dropped but the cost to review didn't. So maintainers are doing the rational thing: GitHub now lets them switch pull requests off, or limit them to people they already trust. That's the gap. The open door that let newcomers into open source is closing, and the only way in is to not be a stranger. dev/social is the place where you stop being a stranger before you open the pull request. And Google should build it because Microsoft owns both GitHub and LinkedIn, so Google has no home for developers.">
+  <div class="kicker">dev/social · product pitch · Alexia Moreanu</div>
+  <h1>AI made code cheap.<br><span style="color:var(--orange)">It made trust expensive.</span></h1>
+
+  <div class="row" style="margin-top:18px; flex:1; min-height:0">
+    <div class="card" style="flex:1.25; display:flex; flex-direction:column">
+      <h3>Merged pull requests on GitHub, per month</h3>
+      <svg viewBox="0 0 600 290" style="width:100%; flex:1">
+        <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0883e" stop-opacity=".35"/><stop offset="1" stop-color="#f0883e" stop-opacity="0"/></linearGradient></defs>
+        <g stroke="#21262d"><line x1="50" y1="240" x2="560" y2="240"/><line x1="50" y1="174" x2="560" y2="174" stroke-dasharray="3 5"/><line x1="50" y1="108" x2="560" y2="108" stroke-dasharray="3 5"/><line x1="50" y1="42" x2="560" y2="42" stroke-dasharray="3 5"/></g>
+        <g fill="#6e7681" font-size="11" class="m"><text x="44" y="244" text-anchor="end">0</text><text x="44" y="178" text-anchor="end">30M</text><text x="44" y="112" text-anchor="end">60M</text><text x="44" y="46" text-anchor="end">90M</text>
+          <text x="62" y="260" text-anchor="middle">2023</text><text x="196" y="260" text-anchor="middle">2024</text><text x="330" y="260" text-anchor="middle">2025</text><text x="464" y="260" text-anchor="middle">2026</text></g>
+        <path d="M62,185 L376,145 L475,42 L475,240 L62,240 Z" fill="url(#ga)"/>
+        <path d="M62,185 L376,145 L475,42" fill="none" stroke="#f0883e" stroke-width="3" stroke-linejoin="round"/>
+        <g fill="#f0883e"><circle cx="62" cy="185" r="5"/><circle cx="376" cy="145" r="5"/><circle cx="475" cy="42" r="6"/></g>
+        <g font-size="13" font-weight="700" fill="#e6edf3"><text x="62" y="172" text-anchor="middle">25M</text><text x="376" y="132" text-anchor="middle">43M</text><text x="462" y="36" text-anchor="end">90M · 3.6×</text></g>
+        <text x="376" y="118" fill="#8b949e" font-size="10.5" text-anchor="middle">2025 avg</text>
+        <line x1="486" y1="30" x2="486" y2="240" stroke="#f85149" stroke-dasharray="4 4"/>
+        <line x1="520" y1="30" x2="520" y2="240" stroke="#f85149" stroke-dasharray="4 4"/>
+        <g font-size="10.5" fill="#f85149"><text x="481" y="214" text-anchor="end">Feb '26: PRs can</text><text x="481" y="227" text-anchor="end">be switched off</text><text x="524" y="200">Jun '26</text><text x="524" y="213">PR caps</text></g>
+        <text x="50" y="284" fill="#c9d1d9" font-size="13" font-style="italic">“The cost to create has dropped but the cost to review has not.” <tspan fill="#6e7681" font-style="normal">— GitHub</tspan></text>
+      </svg>
+    </div>
+
+    <div class="col" style="flex:1">
+      <div class="card">
+        <h3 style="color:var(--red)">The problem</h3>
+        <p style="font-size:17px; color:var(--fg); line-height:1.35">Maintainers are closing the door to strangers.<br>Every newcomer is a stranger.</p>
+      </div>
+      <div class="card" style="border-color:var(--blue); background:linear-gradient(180deg,#132338,var(--s1))">
+        <h3 style="color:var(--blue)">My bet</h3>
+        <p style="font-size:17px; color:var(--fg); line-height:1.35"><span class="logo"><span class="a">dev</span>/<span class="b">social</span></span>: a social layer <b>before</b> the pull request. Show your work in 60s, find people through people, knock before you push.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--green)">Why Google</h3>
+        <p style="font-size:15px">Microsoft owns GitHub <b>and</b> LinkedIn. Google has no home for developers, but it does have YouTube Shorts, Gemini, and 1,000+ developer groups.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:14px; padding:12px 18px; border-radius:12px; background:var(--s2); display:flex; gap:18px; align-items:center">
+    <span class="mono" style="font-size:11px; color:var(--green); letter-spacing:.12em">VISION</span>
+    <span style="font-size:18px; font-weight:600">Every builder is one warm intro away from the right project.</span>
+  </div>
+  <div class="src">GitHub PR volume: GitHub via <a href="https://www.coderabbit.ai/blog/github-gives-maintainers-a-throttle-for-the-ai-pull-request">CodeRabbit (2026)</a>; 2025 average: <a href="https://github.blog/news-insights/octoverse/octoverse-a-new-developer-joins-github-every-second-as-ai-leads-typescript-to-1/">Octoverse 2025</a>; PR controls: <a href="https://www.theregister.com/2026/02/03/github_kill_switch_pull_requests_ai/">The Register</a>. Prototype: github.com/alexia-moreanu/dev-social</div>
+  <div class="pg">1 / 5</div>
+</section>
+
+<!-- ================= 2 · USER ================= -->
+<section class="slide" data-notes="My user is the solo builder: early career, a couple of side projects, zero collaborators. I picked her because she's the biggest group and she plays both sides of the market. She posts her own project, and she wants to join someone else's. Her journey today leaks at every step. Most repos are one-person repos. There are 230 new repos every minute, so sharing is a lottery. When she tries to contribute, the research says that for every 10 people who get a PR accepted into a popular project, 7 others tried and never got in, and the top reasons are duplicated work and vision mismatch. That's missing context, not bad code. Half of contributors contribute once and leave. The most important finding for me: developers join projects where they already know someone, and people with both social ties and the right skills are 30 to 54 percent more productive. Trust isn't a nice-to-have in software, it's how teams form. On the other side, maintainers are unpaid, burning out, and two thirds of popular projects depend on one or two people. They need help, they just can't vet strangers. I'm deliberately not serving big foundation projects, which already have programs, or recruiters, which would turn builders into candidates.">
+  <div class="kicker">02 · User &amp; pain</div>
+  <h2>Building alone isn’t a choice. It’s the default.</h2>
+
+  <div class="row" style="flex:1; min-height:0">
+    <!-- persona -->
+    <div class="card" style="width:270px; display:flex; flex-direction:column; gap:10px">
+      <div style="display:flex; gap:12px; align-items:center">
+        <div style="width:54px;height:54px;border-radius:14px;background:linear-gradient(135deg,#58a6ff,#a371f7);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px">L</div>
+        <div><b style="font-size:16px">Lena, 23</b><div class="lab" style="margin:0">Junior dev · the solo builder</div></div>
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap">
+        <span class="chip"><span class="dot" style="background:var(--purple)"></span>3 side projects</span>
+        <span class="chip"><span class="dot" style="background:var(--red)"></span>0 collaborators</span>
+        <span class="chip"><span class="dot" style="background:var(--orange)"></span>wants in on OSS</span>
+      </div>
+      <p style="font-size:15px; font-style:italic; color:var(--fg); border-left:3px solid var(--blue); padding-left:10px">“I’d love to contribute, but I don’t know anyone there. I don’t want to be the spam PR.”</p>
+      <div style="margin-top:auto; border-top:1px solid var(--bd); padding-top:10px">
+        <h3 style="margin-bottom:6px">Other side: Sam, maintainer</h3>
+        <div style="display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:12.5px; color:#c9d1d9">
+          <b style="color:var(--orange)">60%</b><span>of maintainers are unpaid</span>
+          <b style="color:var(--orange)">~60%</b><span>have quit or considered quitting</span>
+          <b style="color:var(--orange)">2 in 3</b><span>popular projects rest on 1–2 people</span>
+        </div>
+        <p style="font-size:12.5px; margin-top:6px; color:var(--mut)">Sam needs help. He just can’t vet strangers.</p>
+      </div>
+    </div>
+
+    <!-- journey -->
+    <div class="card" style="flex:1; display:flex; flex-direction:column">
+      <h3>Lena’s journey today: where it leaks</h3>
+      <svg viewBox="0 0 800 120" style="width:100%; height:140px">
+        <path d="M60,26 C200,26 220,50 300,58 C390,68 420,80 520,88 C620,96 660,104 760,108" fill="none" stroke="url(#gj)" stroke-width="4"/>
+        <defs><linearGradient id="gj" x1="0" x2="1"><stop offset="0" stop-color="#3fb950"/><stop offset=".5" stop-color="#d29922"/><stop offset="1" stop-color="#f85149"/></linearGradient></defs>
+        <g><circle cx="100" cy="26" r="9" fill="#3fb950"/><circle cx="300" cy="58" r="9" fill="#9fb03a"/><circle cx="520" cy="88" r="9" fill="#e0752f"/><circle cx="740" cy="107" r="9" fill="#f85149"/></g>
+        <g font-size="14" font-weight="600" fill="#e6edf3" text-anchor="middle"><text x="100" y="54">😀 Build</text><text x="300" y="86">😐 Share</text><text x="520" y="116">😟 Try to join</text><text x="690" y="84">😞 Give up</text></g>
+      </svg>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:4px">
+        <div><div class="big" style="color:var(--green)">71.6%</div><div class="lab">of GitHub repos are personal, one-person projects</div></div>
+        <div><div class="big" style="color:var(--yellow)">230<span style="font-size:18px">/min</span></div><div class="lab">new repos. Discovery is a Hacker News lottery or a Google search</div></div>
+        <div><div class="big" style="color:var(--orange)">7 : 10</div><div class="lab">tried-and-rejected for every 10 accepted contributors. Top reasons: duplicate work, vision mismatch</div></div>
+        <div><div class="big" style="color:var(--red)">½</div><div class="lab">of contributors contribute once. 30% say a rejection stopped them</div></div>
+      </div>
+
+      <div style="margin-top:auto; display:flex; gap:14px; align-items:center; background:linear-gradient(90deg,#132338,#161b22); border:1px solid var(--blue); border-radius:12px; padding:12px 16px">
+        <svg width="92" height="54" viewBox="0 0 92 54"><g stroke="#58a6ff" stroke-width="2"><line x1="16" y1="27" x2="46" y2="12"/><line x1="46" y1="12" x2="76" y2="27"/><line x1="16" y1="27" x2="46" y2="42"/><line x1="46" y1="42" x2="76" y2="27"/></g><circle cx="16" cy="27" r="8" fill="#a371f7"/><circle cx="46" cy="12" r="7" fill="#3fb950"/><circle cx="46" cy="42" r="7" fill="#3fb950"/><circle cx="76" cy="27" r="8" fill="#f0883e"/></svg>
+        <div>
+          <div style="font-size:18px; font-weight:700">People join people.</div>
+          <p style="font-size:13.5px">Developers join projects where they already know someone. Social ties plus the right skills mean <b style="color:var(--blue)">+30–54% productivity</b>. Missing context, not missing code, is why newcomers bounce.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:8px; margin-top:10px; align-items:center">
+    <span class="mono" style="font-size:11px; color:var(--red); letter-spacing:.1em">NOT IN V1 →</span>
+    <span class="chip">Big foundation projects <span style="color:var(--mut)">(already have GSoC/LFX)</span></span>
+    <span class="chip">Recruiters <span style="color:var(--mut)">(turn builders into candidates)</span></span>
+    <span class="chip">Non-developers</span>
+  </div>
+  <div class="src">Kalliamvakou et al., <a href="https://chisel.cs.uvic.ca/pubs/kalliamvakou-MSR2014.pdf">MSR 2014</a> · <a href="https://github.blog/news-insights/octoverse/octoverse-a-new-developer-joins-github-every-second-as-ai-leads-typescript-to-1/">Octoverse 2025</a> · Steinmacher et al., <a href="https://homepages.dcc.ufmg.br/~figueiredo/disciplinas/papers/icse18steinmacher.pdf">ICSE 2018</a> (10,099 quasi-contributors, 21 projects) · <a href="https://arxiv.org/html/2604.22120">arXiv 2026</a> · Casalnuovo et al., <a href="https://dl.acm.org/doi/10.1145/2786805.2786854">FSE 2015</a> (+29.5–54.3%) · <a href="https://www.businesswire.com/news/home/20240917030299/en/Tidelift-Study-Reveals-Paid-Open-Source-Maintainers-Do-Significantly-More-Critical-Security-and-Maintenance-Work-Than-Unpaid-Maintainers">Tidelift 2024</a> · Avelino et al., <a href="https://arxiv.org/abs/1604.06766">truck factor, 133 projects</a>. Lena and Sam are composite personas.</div>
+  <div class="pg">2 / 5</div>
+</section>
+
+<!-- ================= 3 · STRATEGY ================= -->
+<section class="slide" data-notes="Here's the market as I see it. On one axis, can I see proof of real work. On the other, is there an actual social graph. GitHub has the proof but almost no social layer; it's where code lives, not where people meet. LinkedIn and X have the graph but everything is self-reported. The top-right corner, proof of work plus a real graph, is empty. Polywork tried a nicer professional profile, raised over 40 million and shut down in January 2025. My read: a profile isn't a reason to come back. A job to be done is, and mine is finding people to build with. Why Google: Microsoft owns the developer graph end to end with GitHub, LinkedIn, VS Code and Copilot. Google's developers are scattered across YouTube, Android, Firebase and Gemini with no home. But Google has the assets to win this corner: Shorts for the format, Kaggle as proof it can run a proof-of-work community, GDG chapters for distribution, and Android for where the next developers are, a third of new GitHub developers will be from India by 2030. The honest risk is Google's social track record. Google+ had 90 percent of sessions under five seconds. The lesson I take is don't build social for everyone. Build one job, for one group, and earn the right to expand.">
+  <div class="kicker">03 · Market &amp; strategy</div>
+  <h2>Nobody owns the corner where proof of work meets people.</h2>
+
+  <div class="row" style="flex:1; min-height:0">
+    <div class="card" style="flex:1.05; display:flex; flex-direction:column">
+      <svg viewBox="0 0 560 430" style="width:100%; flex:1">
+        <rect x="352" y="20" width="188" height="170" rx="12" fill="#3fb950" fill-opacity=".07" stroke="#3fb950" stroke-dasharray="5 5"/>
+        <text x="535" y="40" text-anchor="end" fill="#3fb950" font-size="11" class="m">EMPTY CORNER</text>
+        <line x1="60" y1="380" x2="540" y2="380" stroke="#484f58"/><line x1="60" y1="380" x2="60" y2="20" stroke="#484f58"/>
+        <text x="300" y="412" text-anchor="middle" fill="#8b949e" font-size="13">Social graph → weak to strong</text>
+        <text transform="translate(26,200) rotate(-90)" text-anchor="middle" fill="#8b949e" font-size="13">Proof of real work → self-reported to verifiable</text>
+        <g font-size="13" fill="#c9d1d9">
+          <circle cx="120" cy="52" r="9" fill="#e6edf3"/><text x="134" y="57">GitHub <tspan fill="#6e7681">180M</tspan></text>
+          <circle cx="190" cy="92" r="9" fill="#4285f4"/><text x="204" y="97">Kaggle <tspan fill="#6e7681">(Google) 23M</tspan></text>
+          <circle cx="160" cy="170" r="8" fill="#f48024"/><text x="174" y="175">Stack Overflow</text>
+          <circle cx="175" cy="275" r="7" fill="#8b949e"/><text x="189" y="280">daily.dev</text>
+          <circle cx="250" cy="248" r="7" fill="#8b949e"/><text x="264" y="253">dev.to / Hashnode</text>
+          <circle cx="300" cy="300" r="8" fill="#ff6600"/><text x="314" y="305">HN / Reddit</text>
+          <circle cx="330" cy="208" r="8" fill="#ff0033"/><text x="344" y="213">YouTube</text>
+          <circle cx="400" cy="330" r="8" fill="#5865f2"/><text x="360" y="352">Discord</text>
+          <circle cx="455" cy="290" r="7" fill="none" stroke="#6e7681" stroke-width="2"/><text x="441" y="276" fill="#6e7681" text-decoration="line-through">Polywork</text><text x="441" y="264" fill="#f85149" font-size="10.5">shut down 2025</text>
+          <circle cx="490" cy="350" r="9" fill="#0a66c2"/><text x="476" y="372" text-anchor="end">LinkedIn 1.2B</text>
+          <circle cx="510" cy="318" r="8" fill="#e6edf3" fill-opacity=".6"/><text x="522" y="322">X</text>
+        </g>
+        <circle cx="455" cy="95" r="16" fill="#58a6ff"/><circle cx="455" cy="95" r="26" fill="none" stroke="#58a6ff" stroke-opacity=".4" stroke-width="2"/>
+        <text x="455" y="142" text-anchor="middle" font-size="16" font-weight="700" class="m"><tspan fill="#58a6ff">dev</tspan><tspan fill="#e6edf3">/</tspan><tspan fill="#3fb950">social</tspan></text>
+      </svg>
+      <div class="lab" style="margin-top:0">Positions are my judgment. User counts are public figures.</div>
+    </div>
+
+    <div class="col" style="flex:1">
+      <div class="card">
+        <h3>Why Google: it’s a gap in Google’s map too</h3>
+        <svg viewBox="0 0 540 118" style="width:100%">
+          <rect x="0" y="4" width="250" height="110" rx="12" fill="#0a66c2" fill-opacity=".1" stroke="#0a66c2" stroke-opacity=".6"/>
+          <text x="14" y="26" fill="#79c0ff" font-size="12" class="m">MICROSOFT OWNS</text>
+          <g font-size="13.5" fill="#e6edf3"><text x="14" y="50">GitHub · where code lives</text><text x="14" y="72">LinkedIn · professional graph</text><text x="14" y="94">VS Code + Copilot · where devs work</text></g>
+          <text x="270" y="64" font-size="22" fill="#6e7681">vs</text>
+          <rect x="300" y="4" width="240" height="110" rx="12" fill="#3fb950" fill-opacity=".07" stroke="#3fb950" stroke-opacity=".5"/>
+          <text x="314" y="26" fill="#3fb950" font-size="12" class="m">GOOGLE HAS NO DEV HOME, BUT</text>
+          <g font-size="13.5" fill="#e6edf3"><text x="314" y="50">Shorts · 200B views / day</text><text x="314" y="72">Kaggle · proof-of-work community</text><text x="314" y="94">1,000+ GDG chapters · Gemini</text></g>
+        </svg>
+      </div>
+
+      <div class="card">
+        <h3>Trends working for me</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 14px">
+          <div><div class="big" style="font-size:26px; color:var(--blue)">+36M</div><div class="lab">new developers on GitHub in one year</div></div>
+          <div><div class="big" style="font-size:26px; color:var(--orange)">1 in 3</div><div class="lab">new GitHub devs from India by 2030, mostly mobile-first</div></div>
+          <div><div class="big" style="font-size:26px; color:var(--red)">46%</div><div class="lab">of devs distrust AI accuracy, so human trust carries a premium</div></div>
+          <div><div class="big" style="font-size:26px; color:var(--pink)">70%</div><div class="lab">of people learning to code learn on YouTube: video is how devs learn</div></div>
+        </div>
+      </div>
+
+      <div class="card" style="border-color:#9e6a03; background:linear-gradient(180deg,#2a1f0a,var(--s1))">
+        <h3 style="color:var(--orange)">The risk I take seriously</h3>
+        <p><b>Google+ had 90% of sessions under 5 seconds.</b> Lesson: don’t build “social for everyone.” Build one job, for one group: <b>finding people to build with</b>. Polywork’s shutdown says the same thing: a nicer profile isn’t a reason to return.</p>
+      </div>
+    </div>
+  </div>
+  <div class="src"><a href="https://github.blog/news-insights/octoverse/octoverse-a-new-developer-joins-github-every-second-as-ai-leads-typescript-to-1/">Octoverse 2025</a> · <a href="https://kinsta.com/blog/linkedin-statistics/">LinkedIn stats</a> · <a href="https://arxiv.org/html/2511.06304v2">Kaggle Chronicles 2025</a> · <a href="https://www.thewrap.com/youtube-shorts-200-billion-daily-views/">YouTube Shorts</a> · <a href="https://gdg.community.dev/">GDG</a> · <a href="https://survey.stackoverflow.co/2025/">Stack Overflow Survey 2025</a> · <a href="https://en.wikipedia.org/wiki/Google%2B">Google+ shutdown</a> · <a href="https://news.ycombinator.com/item?id=42554740">Polywork</a></div>
+  <div class="pg">3 / 5</div>
+</section>
+
+<!-- ================= 4 · SOLUTION & MVP ================= -->
+<section class="slide" data-notes="The product is one loop. Show: a 60-second clip of what you built, always linked to a real repo, so it's proof and not performance. Find: a feed of projects and tips, plus the Web, a graph of people and projects, like Obsidian's graph view, that shows you the warm path to any maintainer. Knock: instead of a cold PR, you send a short request with context, like 'I use your library at work, I'd like to take issue 42.' The maintainer controls a daily cap, so the spam problem is solved at the social layer. Build: the actual work still happens on GitHub. And Vouch: after a merge, the maintainer vouches, which makes the graph denser and the next knock warmer. Prioritization, in RICE order. What I cut matters as much. My original idea included hosting code. I cut it, because GitHub does that well and nobody will migrate their repos; hosting isn't the gap, meeting is. I also built a News page in my prototype and I'm cutting it from the MVP, because Hacker News and daily.dev already own that. Recruiters are out until trust exists, because the moment builders feel like candidates, the content turns into LinkedIn.">
+  <div class="kicker">04 · Solution &amp; MVP</div>
+  <h2>One loop: <span style="color:var(--pink)">Show</span> → <span style="color:var(--blue)">Find</span> → <span style="color:var(--green)">Knock</span> → Build → <span style="color:var(--purple)">Vouch</span></h2>
+
+  <div class="row" style="flex:1; min-height:0; align-items:stretch">
+    <!-- loop -->
+    <div class="card" style="width:262px; padding:10px; display:flex; align-items:center; justify-content:center">
+      <svg viewBox="0 0 300 300" style="width:100%">
+        <circle cx="150" cy="150" r="104" fill="none" stroke="#30363d" stroke-width="2" stroke-dasharray="4 6"/>
+        <defs><marker id="ar" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6e7681"/></marker></defs>
+        <g fill="none" stroke="#6e7681" stroke-width="2" marker-end="url(#ar)">
+          <path d="M185.6,52.2 A104,104 0 0 1 232,86"/><path d="M253.9,153.6 A104,104 0 0 1 236.2,208.2"/><path d="M178.7,249.9 A104,104 0 0 1 121.3,249.9"/><path d="M63.8,208.2 A104,104 0 0 1 46.1,153.6"/><path d="M68,86 A104,104 0 0 1 114.4,52.2"/>
+        </g>
+        <g text-anchor="middle" font-weight="700" font-size="14">
+          <circle cx="150" cy="46" r="30" fill="#f778ba"/><text x="150" y="51" fill="#0d1117">Show</text>
+          <circle cx="249" cy="118" r="30" fill="#58a6ff"/><text x="249" y="123" fill="#0d1117">Find</text>
+          <circle cx="211" cy="234" r="30" fill="#3fb950"/><text x="211" y="239" fill="#0d1117">Knock</text>
+          <circle cx="89" cy="234" r="30" fill="#e6edf3"/><text x="89" y="239" fill="#0d1117">Build</text>
+          <circle cx="51" cy="118" r="30" fill="#a371f7"/><text x="51" y="123" fill="#0d1117">Vouch</text>
+        </g>
+        <text x="150" y="146" text-anchor="middle" font-size="12" fill="#8b949e">every loop makes</text>
+        <text x="150" y="163" text-anchor="middle" font-size="12" fill="#8b949e">the graph denser</text>
+      </svg>
+    </div>
+
+    <!-- phones -->
+    <div style="display:flex; gap:10px; align-items:center">
+      <div class="phone"><div class="t">SHOW · 60s clip</div>
+        <div style="height:190px;border-radius:12px;background:linear-gradient(160deg,#23324a,#4a2a5a);display:flex;align-items:center;justify-content:center;font-size:28px;position:relative">▶<span style="position:absolute;bottom:8px;left:8px;font-size:10px;background:#0008;border-radius:4px;padding:1px 5px">0:42</span></div>
+        <div class="in" style="margin-top:6px"><b>kvlite</b> · Rust KV store<br><span style="color:var(--mut)">⎇ mirak/kvlite · ★ 342</span>
+          <div style="margin-top:6px;padding:4px 6px;border-radius:6px;background:#132338;color:var(--blue)">Looking for: 1 dev who knows compaction</div></div></div>
+      <div class="phone"><div class="t">FIND · your web</div>
+        <svg viewBox="0 0 130 150" style="width:100%">
+          <g stroke="#30363d" stroke-width="1.5"><line x1="30" y1="110" x2="70" y2="70"/><line x1="70" y1="70" x2="110" y2="30"/><line x1="30" y1="110" x2="95" y2="120"/><line x1="70" y1="70" x2="25" y2="40"/><line x1="95" y1="120" x2="110" y2="75"/><line x1="110" y1="75" x2="110" y2="30"/></g>
+          <g stroke="#3fb950" stroke-width="3"><line x1="30" y1="110" x2="70" y2="70"/><line x1="70" y1="70" x2="110" y2="30"/></g>
+          <circle cx="30" cy="110" r="9" fill="#58a6ff"/><circle cx="70" cy="70" r="8" fill="#3fb950"/><circle cx="110" cy="30" r="10" fill="#f0883e"/><circle cx="25" cy="40" r="6" fill="#484f58"/><circle cx="95" cy="120" r="6" fill="#484f58"/><circle cx="110" cy="75" r="6" fill="#484f58"/>
+          <g font-size="9" fill="#c9d1d9"><text x="16" y="132">you</text><text x="78" y="72">Ada</text><text x="82" y="16">maintainer</text></g>
+        </svg>
+        <div class="in" style="color:var(--green)">Warm path: you → Ada → Sam</div></div>
+      <div class="phone"><div class="t">KNOCK · not a cold PR</div>
+        <div class="in" style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:7px">
+          <span style="color:var(--mut)">to Sam · via Ada</span><br>“I use kvlite at work. I’d like to take issue #42 (tombstone GC).”</div>
+        <div class="in" style="margin-top:8px;display:flex;gap:6px"><span style="background:var(--green);color:#04150a;border-radius:6px;padding:3px 8px;font-weight:700">Let in</span><span style="border:1px solid var(--bd);border-radius:6px;padding:3px 8px">Not now</span></div>
+        <div class="in" style="margin-top:10px;color:var(--mut)">Sam’s inbox: <b style="color:var(--fg)">3 / 5</b> knocks today · cap set by Sam</div>
+        <div class="in" style="margin-top:8px;color:var(--purple)">After first merge → Sam vouches for Lena</div></div>
+    </div>
+
+    <!-- priorities -->
+    <div class="card" style="flex:1; display:flex; flex-direction:column; min-width:0">
+      <h3>Priorities <span style="text-transform:none; letter-spacing:0; font-weight:400">(RICE, my estimates)</span></h3>
+      <div style="display:grid; grid-template-columns:140px 1fr 30px; gap:9px 8px; align-items:center; font-size:13px">
+        <span>Project + 60s clip</span><div style="height:12px;border-radius:4px;background:var(--green);width:100%"></div><b>9.6</b>
+        <span>Knock (capped)</span><div style="height:12px;border-radius:4px;background:var(--green);width:88%"></div><b>8.4</b>
+        <span>Web · warm paths</span><div style="height:12px;border-radius:4px;background:var(--green);width:58%"></div><b>5.6</b>
+        <span>Vouch after merge</span><div style="height:12px;border-radius:4px;background:var(--green);width:50%"></div><b>4.8</b>
+        <span style="color:var(--mut)">Gemini starter-task match</span><div style="height:12px;border-radius:4px;background:var(--yellow);width:40%"></div><b style="color:var(--mut)">3.8</b>
+        <span style="color:var(--mut)">Tips feed</span><div style="height:12px;border-radius:4px;background:var(--yellow);width:30%"></div><b style="color:var(--mut)">2.9</b>
+      </div>
+      <div style="display:flex; gap:12px; margin:8px 0 10px; font-size:11px; color:var(--mut)"><span><span class="dot" style="background:var(--green)"></span> MVP</span><span><span class="dot" style="background:var(--yellow)"></span> next</span></div>
+      <h3 style="color:var(--red); margin-bottom:8px; margin-top:auto">Cut on purpose</h3>
+      <div style="display:flex; flex-direction:column; gap:9px; font-size:13.5px; color:#c9d1d9">
+        <div><b style="text-decoration:line-through; color:var(--mut)">Hosting code</b> — my original idea. GitHub does it well and nobody migrates repos. Meeting is the gap.</div>
+        <div><b style="text-decoration:line-through; color:var(--mut)">News page</b> — I built it. HN and daily.dev own it.</div>
+        <div><b style="text-decoration:line-through; color:var(--mut)">Recruiters</b> — builders who feel like candidates start performing.</div>
+      </div>
+    </div>
+  </div>
+  <div class="src">Working prototype (Next.js + Prisma): feed, 60s clips, tips, the Web graph, DMs, and a tag-affinity recommender. Knock and Vouch are next. RICE = Reach × Impact × Confidence ÷ Effort; scores are my estimates. Graph view inspired by Obsidian.</div>
+  <div class="pg">4 / 5</div>
+</section>
+
+<!-- ================= 5 · GTM, METRICS, RISKS ================= -->
+<section class="slide" data-notes="Go to market is about one dense network before a big one. Alpha is three GDG university chapters plus thirty maintainers of small projects, because a campus is a place where the same people are both builders and joiners, and they already know each other offline. I only move to the next phase when a gate is met. My North Star is new collaborations per week: a knock that was accepted and turned into a merged PR within 30 days, verified on GitHub. Not likes, not clip views. It only moves when both sides get value. The counter-metrics are what keep me honest: maintainer inbound load, because if I recreate the spam problem I've failed; concentration, because if the top 1 percent of projects get all the knocks, Lena is still invisible; and vanity views that never lead to a repo action. The biggest risk is cold start, and the second is that the slop just moves from PRs to knocks, which is why caps and vouch-weighted ranking are in the MVP, not later. Two of my pain points are validated by research; I'd like to validate the rest with real users, so the last link is a feedback form.">
+  <div class="kicker">05 · Go-to-market, metrics &amp; risks</div>
+  <h2>Start with one dense network. Measure collaborations, not likes.</h2>
+
+  <!-- timeline -->
+  <div class="card" style="padding:12px 16px">
+    <svg viewBox="0 0 1180 104" style="width:100%">
+      <line x1="20" y1="30" x2="1160" y2="30" stroke="#30363d" stroke-width="3"/>
+      <line x1="20" y1="30" x2="420" y2="30" stroke="#58a6ff" stroke-width="3"/>
+      <g><circle cx="20" cy="30" r="8" fill="#58a6ff"/><circle cx="420" cy="30" r="8" fill="#3fb950"/><circle cx="800" cy="30" r="8" fill="#a371f7"/><circle cx="1160" cy="30" r="8" fill="#f0883e"/></g>
+      <g font-size="12" class="m" fill="#8b949e"><text x="20" y="14">M0</text><text x="420" y="14" text-anchor="middle">M3</text><text x="800" y="14" text-anchor="middle">M9</text><text x="1160" y="14" text-anchor="end">M18</text></g>
+      <g font-size="14" font-weight="700" fill="#e6edf3"><text x="36" y="58">ALPHA · 3 GDG campuses + 30 maintainers</text><text x="436" y="58">BETA · 50 chapters, Hacktoberfest, clips → Shorts</text><text x="816" y="58">GA · open sign-up, Android-first (India)</text></g>
+      <g font-size="12.5" fill="#3fb950"><text x="36" y="80">✓ gate: ≥30% of projects get an accepted knock in 30 days</text><text x="436" y="80">✓ gate: ≥40% of joiners contribute twice</text><text x="436" y="99" font-size="11.5" fill="#8b949e">today ~half contribute once</text><text x="816" y="80">✓ gate: W4 retention ≥ 25%</text></g>
+      <text x="36" y="99" font-size="11.5" fill="#8b949e">campus = same people are builders and joiners</text>
+    </svg>
+  </div>
+
+  <div class="row" style="flex:1; min-height:0; margin-top:12px">
+    <!-- NSM tree -->
+    <div class="card" style="flex:1.1">
+      <h3 style="color:var(--blue)">North Star</h3>
+      <div style="display:flex; gap:14px; align-items:center">
+        <div style="background:linear-gradient(135deg,#1f6feb,#8957e5); border-radius:12px; padding:12px 14px; width:210px; flex:none">
+          <div style="font-size:17px; font-weight:750; line-height:1.2">New collaborations / week</div>
+          <div style="font-size:11.5px; opacity:.85; margin-top:4px">knock accepted → merged PR in 30 days, verified on GitHub</div>
+        </div>
+        <svg viewBox="0 0 60 150" width="36" height="150"><path d="M0,75 H20 M20,15 V135 M20,15 H56 M20,55 H56 M20,95 H56 M20,135 H56" stroke="#484f58" stroke-width="2" fill="none"/></svg>
+        <div style="display:flex; flex-direction:column; gap:10px; font-size:13px">
+          <div><span class="dot" style="background:var(--pink)"></span> Projects posted with a clip</div>
+          <div><span class="dot" style="background:var(--blue)"></span> Knocks sent per active builder</div>
+          <div><span class="dot" style="background:var(--green)"></span> Knock → accepted rate</div>
+          <div><span class="dot" style="background:var(--purple)"></span> Accepted → first merge rate</div>
+        </div>
+      </div>
+      <h3 style="color:var(--red); margin-top:12px">Counter-metrics I watch</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; font-size:12.5px; color:#c9d1d9">
+        <div>🧯 Knocks per maintainer / week, mute rate</div>
+        <div>🤖 Share of knocks flagged low-effort / AI</div>
+        <div>📈 % of knocks going to the top 1% of projects</div>
+        <div>👀 Clip views with no repo action (vanity)</div>
+      </div>
+    </div>
+
+    <!-- risk matrix -->
+    <div class="card" style="flex:1; display:flex; gap:12px">
+      <div style="width:220px; flex:none">
+        <h3 style="color:var(--orange)">Risks</h3>
+        <svg viewBox="0 0 220 210" style="width:100%">
+          <rect x="30" y="10" width="180" height="170" fill="#161b22" stroke="#30363d"/>
+          <rect x="120" y="10" width="90" height="85" fill="#f85149" fill-opacity=".12"/>
+          <line x1="120" y1="10" x2="120" y2="180" stroke="#30363d"/><line x1="30" y1="95" x2="210" y2="95" stroke="#30363d"/>
+          <text x="120" y="200" text-anchor="middle" font-size="11" fill="#8b949e">likelihood →</text>
+          <text transform="translate(16,95) rotate(-90)" text-anchor="middle" font-size="11" fill="#8b949e">impact →</text>
+          <g font-size="12" font-weight="700" text-anchor="middle" fill="#0d1117">
+            <circle cx="185" cy="32" r="13" fill="#f85149"/><text x="185" y="36">1</text>
+            <circle cx="160" cy="62" r="13" fill="#f0883e"/><text x="160" y="66">2</text>
+            <circle cx="85" cy="40" r="13" fill="#d29922"/><text x="85" y="44">3</text>
+            <circle cx="100" cy="72" r="13" fill="#d29922"/><text x="100" y="76">4</text>
+            <circle cx="150" cy="130" r="13" fill="#8b949e"/><text x="150" y="134">5</text>
+          </g>
+        </svg>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:7px; font-size:12.5px; color:#c9d1d9; justify-content:center">
+        <div><b>1 Cold start.</b> Campus networks where one persona plays both sides.</div>
+        <div><b>2 Slop moves to knocks.</b> Maintainer caps, context required, vouch-weighted ranking. In MVP.</div>
+        <div><b>3 GitHub copies it.</b> Distribution via Shorts + Android, and the graph compounds.</div>
+        <div><b>4 Google’s social track record.</b> Narrow job, GitHub-first, open data export.</div>
+        <div><b>5 Performative content.</b> Every clip must link to real commits.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; align-items:center; gap:14px; margin-top:10px; padding:10px 16px; border-radius:12px; border:1px solid #238636; background:linear-gradient(90deg,#0f2a1a,#161b22)">
+    <span style="font-size:14px"><b>Help me validate the rest.</b> Developer or maintainer? Tell me where this breaks.</span>
+    <a href="https://github.com/alexia-moreanu/dev-social/issues/new?template=feedback.yml" style="margin-left:auto; background:var(--green); color:#04150a; font-weight:700; border-radius:8px; padding:7px 14px; text-decoration:none; font-size:13px">Give feedback →</a>
+  </div>
+  <div class="src">Phase gates, targets and risk placement are my proposals, not measured results. Baseline: “half contribute only once” (<a href="https://arxiv.org/html/2604.22120">arXiv 2026</a>). Feedback form is a public GitHub issue form, so please don’t include personal contact details.</div>
+  <div class="pg">5 / 5</div>
+</section>
+
+</div></div>
+
+<div id="dots"></div>
+<div id="notes"></div>
+<div id="hint">← → navigate · N speaker notes · P print/PDF</div>
+
+<script>
+(function () {
+  var slides = [].slice.call(document.querySelectorAll(".slide"));
+  var deck = document.getElementById("deck"), dots = document.getElementById("dots"), notes = document.getElementById("notes");
+  var cur = 0;
+  slides.forEach(function (_, i) {
+    var b = document.createElement("button");
+    b.setAttribute("aria-label", "Go to slide " + (i + 1));
+    b.onclick = function () { go(i); };
+    dots.appendChild(b);
+  });
+  function go(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach(function (s, k) { s.classList.toggle("active", k === cur); });
+    [].forEach.call(dots.children, function (d, k) { d.classList.toggle("on", k === cur); });
+    notes.innerHTML = "<b>Notes · slide " + (cur + 1) + "</b><br>" + (slides[cur].getAttribute("data-notes") || "");
+    try { history.replaceState(null, "", "#" + (cur + 1)); } catch (e) {}
+  }
+  function fit() { deck.style.transform = "scale(" + Math.min(innerWidth / 1280, innerHeight / 720) + ")"; }
+  addEventListener("resize", fit);
+  addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); go(cur + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(cur - 1); }
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(slides.length - 1);
+    else if (e.key === "n" || e.key === "N") notes.classList.toggle("on");
+    else if (e.key === "p" || e.key === "P") print();
+  });
+  deck.addEventListener("click", function (e) {
+    if (e.target.closest("a")) return;
+    var r = deck.getBoundingClientRect();
+    if (e.clientX < r.left + r.width * .2) go(cur - 1);
+    else if (e.clientX > r.left + r.width * .8) go(cur + 1);
+  });
+  fit();
+  setTimeout(function () { document.getElementById("hint").style.display = "none"; }, 6000);
+  var h = parseInt(location.hash.slice(1), 10);
+  go(h >= 1 && h <= slides.length ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

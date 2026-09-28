@@ -1,0 +1,53 @@
+name: dev/social feedback
+description: Tell me where the dev/social idea works or breaks for you.
+title: "[Feedback] "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping validate dev/social. **GitHub issues are public**, so please don't include emails, phone numbers, or anything private.
+  - type: dropdown
+    id: role
+    attributes:
+      label: Which best describes you?
+      options:
+        - I build side projects
+        - I maintain an open-source project
+        - Student / learning to code
+        - Recruiter or hiring manager
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: pain
+    attributes:
+      label: Which of these is most true for you?
+      options:
+        - I share projects and nobody sees them
+        - I want to contribute but don't know where to start
+        - I don't know anyone on the projects I'd like to join
+        - As a maintainer, I can't vet strangers' pull requests
+        - None of these
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: How do you find projects or collaborators today?
+    validations:
+      required: true
+  - type: textarea
+    id: breaks
+    attributes:
+      label: What would make you not use this?
+  - type: dropdown
+    id: use
+    attributes:
+      label: Would you use it?
+      options:
+        - Yes, I'd try it this month
+        - Maybe, if something changes
+        - No
+    validations:
+      required: true
