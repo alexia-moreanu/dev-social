@@ -28,6 +28,11 @@ A working Next.js app that implements the core loop from the deck.
   path to the maintainer ("you → Ada → Mira") and how many knocks they have
   left today. Maintainers set their own daily limit, then **Let in** (which
   opens a DM seeded with your knock) or **Not now**.
+- **Vouch**: once you've built together (a knock was let in), either side can
+  vouch for the other with a note on what they actually did. Vouches show on
+  profiles, rank vouched-for knocks higher in a maintainer's inbox (especially
+  vouches from people the maintainer knows), count as ties for warm paths, and
+  appear as purple edges on the Web graph.
 - **Home** (`/`): one feed of projects (with GitHub repo card and "looking
   for" ask), code snippets, tips, 60s clips, links, and updates. Sort by
   Hot / New / Top / **For You**.
@@ -44,7 +49,7 @@ from what they post, like, and comment on, compared by cosine similarity.
 
 ```bash
 npm install
-npm run seed   # 14 demo users, ~45 posts, follows, DMs, and knocks
+npm run seed   # 14 demo users, ~45 posts, follows, DMs, knocks, and vouches
 npm run dev
 ```
 
@@ -63,7 +68,8 @@ use **switch user** in the nav to act as any demo user. Try switching to
 
 - `docs/index.html`: the pitch deck (served by GitHub Pages)
 - `prisma/schema.prisma`: data model, including `Knock`
-- `src/lib/knocks.ts`: warm-path lookup, daily cap, knock inbox queries
+- `src/lib/knocks.ts`: warm-path lookup, daily cap, trust-ranked knock inbox
+- `src/lib/vouches.ts`: who can vouch (collaboration check) and vouch queries
 - `src/lib/affinity.ts`: the recommendation model
 - `src/lib/graph.ts`: node/edge data for the Web graph
 - `src/lib/actions.ts`: server actions (knock, vote, comment, follow, post, messages)
@@ -72,5 +78,5 @@ use **switch user** in the nav to act as any demo user. Try switching to
 
 ### Not built yet
 
-Vouch (after a first merge), GitHub verification of merges, real auth, video
-upload (clips use placeholder media), and live GitHub repo stats.
+GitHub verification of merges (today a vouch unlocks after a knock is let in),
+real auth, video upload (clips use placeholder media), and live GitHub repo stats.

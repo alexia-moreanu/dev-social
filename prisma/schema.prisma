@@ -30,6 +30,9 @@ model User {
   knocksSent     Knock[] @relation("KnockFrom")
   knocksReceived Knock[] @relation("KnockTo")
   knocksVia      Knock[] @relation("KnockVia")
+
+  vouchesGiven    Vouch[] @relation("VouchFrom")
+  vouchesReceived Vouch[] @relation("VouchTo")
 }
 
 model Follow {
@@ -89,6 +92,23 @@ model Post {
   votes    Vote[]
   tags     PostTag[]
   knocks   Knock[]
+  vouches  Vouch[]
+}
+
+model Vouch {
+  id        String   @id @default(cuid())
+  fromId    String
+  toId      String
+  projectId String?
+  note      String
+  createdAt DateTime @default(now())
+
+  from    User  @relation("VouchFrom", fields: [fromId], references: [id])
+  to      User  @relation("VouchTo", fields: [toId], references: [id])
+  project Post? @relation(fields: [projectId], references: [id])
+
+  @@unique([fromId, toId])
+  @@index([toId])
 }
 
 enum KnockStatus {

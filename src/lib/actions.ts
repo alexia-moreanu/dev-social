@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, CURRENT_USER_COOKIE } from "@/lib/current-user";
 import { getOrCreateConversation } from "@/lib/conversations";
 import { getKnockContext } from "@/lib/knocks";
-import { MIN_KNOCK_LENGTH } from "@/lib/knock-rules";
+import { MIN_KNOCK_LENGTH, MIN_VOUCH_LENGTH } from "@/lib/knock-rules";
+import { findCollaboration } from "@/lib/vouches";
 import type { PostType } from "@prisma/client";
 
 export async function switchUser(userId: string) {
@@ -243,4 +244,30 @@ export async function setKnockCap(cap: number) {
   const safe = Math.max(1, Math.min(20, Math.round(cap)));
   await prisma.user.update({ where: { id: user.id }, data: { knockCap: safe } });
   revalidatePath("/knocks");
+}
+
+export async function vouchFor(targetUserId: string, note: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not signed in" };
+
+  const body = note.trim();
+  if (body.length < MIN_VOUCH_LENGTH) {
+    return { error: `Say what they actually did (at least ${MIN_VOUCH_LENGTH} characters).` };
+  }
+
+  const collab = await findCollaboration(user.id, targetUserId);
+  if (!collab) return { error: "You can only vouch for people you've built with." };
+
+  const existing = await prisma.vouch.findUnique({
+    where: { fromId_toId: { fromId: user.id, toId: targetUserId } },
+  });
+  if (existing) return { error: "You've already vouched for them." };
+
+  await prisma.vouch.create({
+    data: { fromId: user.id, toId: targetUserId, projectId: collab.projectId, note: body },
+  });
+  revalidatePath("/knocks");
+  revalidatePath("/web");
+  revalidatePath("/u/[username]", "page");
+  return { ok: true };
 }

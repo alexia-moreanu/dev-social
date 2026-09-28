@@ -111,7 +111,11 @@ export default function KnockButton({
                       <span className="text-up font-medium">{ctx.path.via.name}</span>
                       <span className="text-muted"> → </span>
                       <span className="text-foreground">{maintainer?.name}</span>
-                      <div className="text-xs text-muted mt-0.5">Your knock will show you both know {ctx.path.via.name}.</div>
+                      <div className={`text-xs mt-0.5 ${ctx.path.viaVouched ? "text-purple-300" : "text-muted"}`}>
+                        {ctx.path.viaVouched
+                          ? `${ctx.path.via.name} vouched for you. Your knock will show it.`
+                          : `Your knock will show you both know ${ctx.path.via.name}.`}
+                      </div>
                     </div>
                   ) : (
                     <div className="text-sm text-muted">No shared connections yet. Good context matters even more.</div>

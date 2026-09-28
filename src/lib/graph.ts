@@ -12,13 +12,14 @@ export type GraphNode = {
 export type GraphEdge = {
   source: string;
   target: string;
-  kind: "follow" | "similar";
+  kind: "follow" | "similar" | "vouch";
 };
 
 export async function buildNetworkGraph(centerUserId: string, maxNodes = 26) {
-  const [allUsers, allFollows, vectors] = await Promise.all([
+  const [allUsers, allFollows, allVouches, vectors] = await Promise.all([
     prisma.user.findMany({ select: { id: true, username: true, name: true, avatar: true } }),
     prisma.follow.findMany({ select: { followerId: true, followingId: true } }),
+    prisma.vouch.findMany({ select: { fromId: true, toId: true } }),
     buildAllAffinityVectors(),
   ]);
 
@@ -35,7 +36,10 @@ export async function buildNetworkGraph(centerUserId: string, maxNodes = 26) {
     .map((u) => ({ id: u.id, sim: cosineSimilarity(centerVec, vectors.get(u.id) ?? new Map()) }))
     .sort((a, b) => b.sim - a.sim);
 
-  const ring1Ids = new Set<string>([...followingOfCenter, ...followersOfCenter]);
+  const vouchTiesOfCenter = allVouches.flatMap((v) =>
+    v.fromId === centerUserId ? [v.toId] : v.toId === centerUserId ? [v.fromId] : []
+  );
+  const ring1Ids = new Set<string>([...vouchTiesOfCenter, ...followingOfCenter, ...followersOfCenter]);
   for (const s of similarities) {
     if (ring1Ids.size >= 9) break;
     if (s.sim > 0) ring1Ids.add(s.id);
@@ -61,6 +65,14 @@ export async function buildNetworkGraph(centerUserId: string, maxNodes = 26) {
   const nodeIds = new Set(nodes.map((n) => n.id));
   const edges: GraphEdge[] = [];
   const seenEdge = new Set<string>();
+
+  for (const v of allVouches) {
+    if (!nodeIds.has(v.fromId) || !nodeIds.has(v.toId)) continue;
+    const key = [v.fromId, v.toId].sort().join("|");
+    if (seenEdge.has(key)) continue;
+    seenEdge.add(key);
+    edges.push({ source: v.fromId, target: v.toId, kind: "vouch" });
+  }
 
   for (const f of allFollows) {
     if (!nodeIds.has(f.followerId) || !nodeIds.has(f.followingId)) continue;

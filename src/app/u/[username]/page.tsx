@@ -6,6 +6,10 @@ import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import MessageButton from "@/components/MessageButton";
 import PostCard from "@/components/PostCard";
+import VouchButton from "@/components/VouchButton";
+import Link from "next/link";
+import { getVouchesFor, getVouchState } from "@/lib/vouches";
+import { timeAgo } from "@/lib/format";
 
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
@@ -16,7 +20,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   if (!profileUser) notFound();
 
-  const [posts, followerCount, followingCount, isFollowing] = await Promise.all([
+  const [posts, followerCount, followingCount, isFollowing, vouches, vouchState] = await Promise.all([
     getFeedPosts({ sort: "new", authorId: profileUser.id, currentUserId: currentUser?.id }),
     prisma.follow.count({ where: { followingId: profileUser.id } }),
     prisma.follow.count({ where: { followerId: profileUser.id } }),
@@ -25,6 +29,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           where: { followerId_followingId: { followerId: currentUser.id, followingId: profileUser.id } },
         })
       : null,
+    getVouchesFor(profileUser.id),
+    currentUser ? getVouchState(currentUser.id, profileUser.id) : null,
   ]);
 
   const isSelf = currentUser?.id === profileUser.id;
@@ -41,6 +47,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 <div className="flex items-center gap-2">
                   <FollowButton userId={profileUser.id} initialFollowing={!!isFollowing} />
                   <MessageButton userId={profileUser.id} />
+                  {vouchState && (vouchState.canVouch || vouchState.hasVouched) && (
+                    <VouchButton
+                      targetId={profileUser.id}
+                      targetName={profileUser.name}
+                      project={vouchState.project}
+                      initialVouched={vouchState.hasVouched}
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -66,10 +80,41 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
               <span className="text-muted">
                 <span className="text-foreground font-medium">{followingCount}</span> following
               </span>
+              <span className="text-purple-300">
+                <span className="font-medium">{vouches.length}</span> {vouches.length === 1 ? "vouch" : "vouches"}
+              </span>
             </div>
           </div>
         </div>
       </div>
+
+      {vouches.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-xs font-mono uppercase tracking-wider text-purple-400 mb-2">Vouched for by people who built with them</h2>
+          <div className="space-y-2">
+            {vouches.map((v) => (
+              <div key={v.id} className="rounded-2xl border border-purple-400/30 bg-purple-400/5 p-3.5 flex items-start gap-3">
+                <Link href={`/u/${v.from.username}`} className="shrink-0">
+                  <Avatar src={v.from.avatar} name={v.from.name} size={32} />
+                </Link>
+                <div className="min-w-0">
+                  <div className="text-sm">
+                    <Link href={`/u/${v.from.username}`} className="font-semibold hover:underline">{v.from.name}</Link>
+                    {v.project && (
+                      <span className="text-muted">
+                        {" "}· on{" "}
+                        <Link href={`/post/${v.project.id}`} className="text-purple-300 hover:underline">{v.project.title}</Link>
+                      </span>
+                    )}
+                    <span className="text-muted text-xs"> · {timeAgo(v.createdAt)} ago</span>
+                  </div>
+                  <p className="text-sm leading-relaxed mt-0.5">“{v.note}”</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         {posts.length === 0 ? (

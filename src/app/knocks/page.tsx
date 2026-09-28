@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/current-user";
 import { getIncomingKnocks, getSentKnocks, knocksReceivedToday } from "@/lib/knocks";
 import { KnockActions, CapControl } from "@/components/KnockActions";
 import Avatar from "@/components/Avatar";
+import VouchButton from "@/components/VouchButton";
+import { getVouchedIds } from "@/lib/vouches";
 import { timeAgo } from "@/lib/format";
 
 const STATUS_STYLE = {
@@ -26,6 +28,11 @@ export default async function KnocksPage({ searchParams }: { searchParams: Promi
   const pending = incoming.filter((k) => k.status === "PENDING");
   const answered = incoming.filter((k) => k.status !== "PENDING");
   const list = showSent ? sent : [...pending, ...answered];
+  const collaboratorIds = list
+    .filter((k) => k.status === "ACCEPTED")
+    .map((k) => (showSent ? k.toId : k.fromId));
+  const vouched = await getVouchedIds(user.id, collaboratorIds);
+  const trustById = new Map(incoming.map((k) => [k.id, k]));
 
   return (
     <div className="mx-auto max-w-xl px-4 py-5">
@@ -67,6 +74,7 @@ export default async function KnocksPage({ searchParams }: { searchParams: Promi
         <div className="space-y-3">
           {list.map((k) => {
             const person = showSent ? k.to : k.from;
+            const trust = showSent ? undefined : trustById.get(k.id);
             return (
               <div key={k.id} className="rounded-2xl border border-border bg-surface p-4">
                 <div className="flex items-start gap-3">
@@ -89,6 +97,14 @@ export default async function KnocksPage({ searchParams }: { searchParams: Promi
                         {k.project.title}
                       </Link>
                     </div>
+                    {trust && k.status === "PENDING" && trust.vouchCount > 0 && (
+                      <div className="text-xs text-purple-300 mt-1">
+                        ✦ Vouched for by {trust.vouchCount} {trust.vouchCount === 1 ? "person" : "people"}
+                        {trust.knownVouchers.length > 0 && (
+                          <span className="text-purple-400 font-medium"> · incl. {trust.knownVouchers.join(", ")}, who you know</span>
+                        )}
+                      </div>
+                    )}
                     {k.via && (
                       <div className="text-xs text-up mt-1">
                         🤝 {showSent ? "Via" : "You both know"} {k.via.name}
@@ -98,6 +114,19 @@ export default async function KnocksPage({ searchParams }: { searchParams: Promi
                     {!showSent && k.status === "PENDING" && (
                       <div className="mt-3">
                         <KnockActions knockId={k.id} />
+                      </div>
+                    )}
+                    {k.status === "ACCEPTED" && (
+                      <div className="mt-3 flex items-center gap-3">
+                        <VouchButton
+                          targetId={person.id}
+                          targetName={person.name}
+                          project={k.project.title}
+                          initialVouched={vouched.has(person.id)}
+                        />
+                        {!vouched.has(person.id) && (
+                          <span className="text-xs text-muted">You built together. Vouch if it went well.</span>
+                        )}
                       </div>
                     )}
                   </div>

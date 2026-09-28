@@ -27,6 +27,9 @@ export default async function WebPage() {
           <span className="flex items-center gap-1.5">
             <span className="w-6 border-t border-dashed border-muted" /> similar
           </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-6 border-t-2 border-purple-400" /> vouched
+          </span>
         </div>
       </div>
 

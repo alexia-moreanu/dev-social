@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import type { GraphNode, GraphEdge } from "@/lib/graph";
 
 type SimNode = GraphNode & SimulationNodeDatum;
-type SimLink = { source: SimNode; target: SimNode; kind: "follow" | "similar" };
+type SimLink = { source: SimNode; target: SimNode; kind: GraphEdge["kind"] };
 
 const WIDTH = 900;
 const HEIGHT = 640;
@@ -137,10 +137,10 @@ export default function NetworkGraph({
           y1={l.source.y}
           x2={l.target.x}
           y2={l.target.y}
-          stroke={l.kind === "similar" ? "#8b949e" : "#30363d"}
-          strokeWidth={l.kind === "similar" ? 1 : 1.5}
+          stroke={l.kind === "vouch" ? "#a371f7" : l.kind === "similar" ? "#8b949e" : "#30363d"}
+          strokeWidth={l.kind === "vouch" ? 2.5 : l.kind === "similar" ? 1 : 1.5}
           strokeDasharray={l.kind === "similar" ? "4 4" : undefined}
-          opacity={l.kind === "similar" ? 0.6 : 0.8}
+          opacity={l.kind === "similar" ? 0.6 : l.kind === "vouch" ? 0.9 : 0.8}
         />
       ))}
 

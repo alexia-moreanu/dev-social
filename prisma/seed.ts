@@ -52,6 +52,7 @@ function daysAgo(d: number) {
 
 async function main() {
   console.log("Clearing existing data...");
+  await prisma.vouch.deleteMany();
   await prisma.knock.deleteMany();
   await prisma.message.deleteMany();
   await prisma.conversationParticipant.deleteMany();
@@ -580,6 +581,14 @@ async function main() {
       message: "I once leaked a Stripe key from a side project. I'd like to add patterns for Stripe restricted keys and Supabase service keys." },
     { from: "hana_swift", repo: "https://github.com/yukiterm/dotfiles", status: "DECLINED", hoursAgo: 50,
       message: "I'd like to port the tmux + fzf setup to macOS defaults and write up the differences for people coming from iTerm." },
+    { from: "theo_zig", repo: "https://github.com/oliviabennett/littlelang", status: "ACCEPTED", hoursAgo: 200,
+      message: "I'd like to write the parser error recovery. I did the same for a Zig config format and it's the part people notice most." },
+    { from: "ada.sec", repo: "https://github.com/priyanair/tinyrag", status: "ACCEPTED", hoursAgo: 240,
+      message: "RAG pipelines are a prompt-injection magnet. I'd like to add a test suite of malicious documents and a sanitizing step." },
+    { from: "ren_ai", repo: "https://github.com/adachen/leakscan", status: "ACCEPTED", hoursAgo: 300,
+      message: "I'd like to add detection for LLM provider keys (Anthropic, OpenAI, Gemini). They're leaking constantly in notebooks." },
+    { from: "devondavis", repo: "https://github.com/leomartins/homelab-gitops", status: "ACCEPTED", hoursAgo: 150,
+      message: "Your Grafana dashboards deserve a nicer landing page. I'd like to build a small status page that reads from them." },
     { from: "mira_k", repo: "https://github.com/oliviabennett/littlelang", status: "PENDING", hoursAgo: 8,
       message: "I've always wanted to understand unification properly. Could I take one of the starter issues on better type error messages?" },
   ];
@@ -602,7 +611,36 @@ async function main() {
     });
   }
 
-  console.log(`Seeded ${users.length} users, ${tagRecords.length} tags, ${posts.length} posts, ${exchanges.length} conversations, ${knockSeeds.length} knocks.`);
+  console.log("Creating vouches...");
+  const vouchSeeds: { from: string; to: string; repo: string; note: string }[] = [
+    { from: "mira_k", to: "olivia.rs", repo: "https://github.com/mirak/kvlite",
+      note: "Added property-based tests to the memtable and they caught a real compaction bug in week one." },
+    { from: "olivia.rs", to: "mira_k", repo: "https://github.com/mirak/kvlite",
+      note: "Reviewed my PR within a day and explained the LSM design better than any blog post." },
+    { from: "olivia.rs", to: "theo_zig", repo: "https://github.com/oliviabennett/littlelang",
+      note: "Rewrote parser error recovery. Error messages went from cryptic to genuinely helpful." },
+    { from: "priya.codes", to: "ada.sec", repo: "https://github.com/priyanair/tinyrag",
+      note: "Built a prompt-injection test suite that found three ways to hijack the retrieval step." },
+    { from: "ada.sec", to: "ren_ai", repo: "https://github.com/adachen/leakscan",
+      note: "Shipped LLM key detection with near-zero false positives. Clean, well-tested code." },
+    { from: "ren_ai", to: "ada.sec", repo: "https://github.com/adachen/leakscan",
+      note: "Thoughtful maintainer: clear issues, fast reviews, and credit where it's due." },
+    { from: "leo_infra", to: "devondavis", repo: "https://github.com/leomartins/homelab-gitops",
+      note: "Built the status page in a weekend. It's now the first thing I open every morning." },
+  ];
+  for (const v of vouchSeeds) {
+    await prisma.vouch.create({
+      data: {
+        fromId: userByUsername.get(v.from)!.id,
+        toId: userByUsername.get(v.to)!.id,
+        projectId: projectByRepo.get(v.repo)!.id,
+        note: v.note,
+        createdAt: new Date(Date.now() - 48 * 3600_000),
+      },
+    });
+  }
+
+  console.log(`Seeded ${users.length} users, ${tagRecords.length} tags, ${posts.length} posts, ${exchanges.length} conversations, ${knockSeeds.length} knocks, ${vouchSeeds.length} vouches.`);
 }
 
 main()
