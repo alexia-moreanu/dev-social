@@ -23,6 +23,7 @@ export default function SubmitForm() {
   const [command, setCommand] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
   const [repoLang, setRepoLang] = useState("");
+  const [lookingFor, setLookingFor] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [tags, setTags] = useState("");
   const [pending, startTransition] = useTransition();
@@ -40,6 +41,7 @@ export default function SubmitForm() {
         command: command || undefined,
         repoUrl: repoUrl || undefined,
         repoLang: repoLang || undefined,
+        lookingFor: lookingFor || undefined,
         linkUrl: linkUrl || undefined,
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       });
@@ -130,6 +132,14 @@ export default function SubmitForm() {
               onChange={(e) => setRepoLang(e.target.value)}
               className="input"
               placeholder="Rust, Python, TypeScript..."
+            />
+          </Field>
+          <Field label="looking for (optional)">
+            <input
+              value={lookingFor}
+              onChange={(e) => setLookingFor(e.target.value)}
+              className="input"
+              placeholder="e.g. 1 frontend dev who knows React Native"
             />
           </Field>
         </>

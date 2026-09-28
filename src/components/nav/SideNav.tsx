@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
 import { getUnreadMessageCount } from "@/lib/conversations";
+import { getPendingKnockCount } from "@/lib/knocks";
 import { NavItem } from "@/components/nav/NavItem";
 import UserSwitcher from "@/components/UserSwitcher";
 import Avatar from "@/components/Avatar";
@@ -13,6 +14,7 @@ import {
   WebIcon,
   MessagesIcon,
   PlusIcon,
+  KnockIcon,
 } from "@/components/nav/icons";
 
 export default async function SideNav() {
@@ -23,7 +25,9 @@ export default async function SideNav() {
       orderBy: { username: "asc" },
     }),
   ]);
-  const unread = user ? await getUnreadMessageCount(user.id) : 0;
+  const [unread, pendingKnocks] = user
+    ? await Promise.all([getUnreadMessageCount(user.id), getPendingKnockCount(user.id)])
+    : [0, 0];
 
   return (
     <nav className="hidden md:flex md:flex-col w-[72px] xl:w-64 shrink-0 border-r border-border h-screen sticky top-0 px-2 xl:px-3 py-4">
@@ -42,6 +46,7 @@ export default async function SideNav() {
         <NavItem href="/news" icon={<NewsIcon className="w-6 h-6" />} label="News" />
         <NavItem href="/learn" icon={<LearnIcon className="w-6 h-6" />} label="Learn" />
         <NavItem href="/web" icon={<WebIcon className="w-6 h-6" />} label="Web" />
+        <NavItem href="/knocks" icon={<KnockIcon className="w-6 h-6" />} label="Knocks" badge={pendingKnocks} />
         <NavItem href="/messages" icon={<MessagesIcon className="w-6 h-6" />} label="Messages" badge={unread} />
         <NavItem href="/submit" icon={<PlusIcon className="w-6 h-6" />} label="Post" />
       </div>

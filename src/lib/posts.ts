@@ -37,6 +37,12 @@ export async function getFeedPosts(opts: {
       tags: { include: { tag: true } },
       _count: { select: { votes: true, comments: true } },
       votes: { where: { userId: currentUserId ?? "__none__" } },
+      knocks: {
+        where: { fromId: currentUserId ?? "__none__" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { status: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -61,6 +67,8 @@ export async function getFeedPosts(opts: {
       voteCount: votes,
       commentCount: p._count.comments,
       hasVoted: currentUserId ? p.votes.length > 0 : false,
+      isMine: p.authorId === currentUserId,
+      myKnockStatus: p.knocks[0]?.status ?? null,
       _sortScore: score,
     };
   });

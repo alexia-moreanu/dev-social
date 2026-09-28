@@ -30,6 +30,12 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
       tags: { include: { tag: true } },
       _count: { select: { votes: true, comments: true } },
       votes: { where: { userId: user?.id ?? "__none__" } },
+      knocks: {
+        where: { fromId: user?.id ?? "__none__" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { status: true },
+      },
       comments: {
         include: { author: true },
         orderBy: { createdAt: "asc" },
@@ -44,6 +50,8 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
     voteCount: post._count.votes,
     commentCount: post._count.comments,
     hasVoted: user ? post.votes.length > 0 : false,
+    isMine: post.authorId === user?.id,
+    myKnockStatus: post.knocks[0]?.status ?? null,
     _sortScore: 0,
   };
 

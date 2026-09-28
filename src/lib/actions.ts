@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, CURRENT_USER_COOKIE } from "@/lib/current-user";
 import { getOrCreateConversation } from "@/lib/conversations";
+import { getKnockContext } from "@/lib/knocks";
+import { MIN_KNOCK_LENGTH } from "@/lib/knock-rules";
 import type { PostType } from "@prisma/client";
 
 export async function switchUser(userId: string) {
@@ -66,6 +68,7 @@ type SubmitPostInput = {
   command?: string;
   repoUrl?: string;
   repoLang?: string;
+  lookingFor?: string;
   linkUrl?: string;
   tags: string[];
 };
@@ -94,6 +97,7 @@ export async function submitPost(input: SubmitPostInput) {
       command: input.command || undefined,
       repoUrl: input.repoUrl || undefined,
       repoLang: input.repoLang || undefined,
+      lookingFor: input.type === "PROJECT" ? input.lookingFor || undefined : undefined,
       linkUrl: input.linkUrl || undefined,
       linkDomain,
     },
@@ -152,4 +156,91 @@ export async function markConversationRead(conversationId: string) {
     })
     .catch(() => {});
   revalidatePath("/messages");
+}
+
+export async function loadKnockContext(projectId: string) {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  return getKnockContext(projectId, user.id);
+}
+
+export async function sendKnock(projectId: string, message: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not signed in" };
+
+  const body = message.trim();
+  if (body.length < MIN_KNOCK_LENGTH) {
+    return { error: `Add a bit more context (at least ${MIN_KNOCK_LENGTH} characters).` };
+  }
+
+  const ctx = await getKnockContext(projectId, user.id);
+  if (!ctx) return { error: "Project not found" };
+  if (ctx.project.author.id === user.id) return { error: "You can't knock on your own project." };
+  if (ctx.existingStatus === "PENDING") return { error: "You already have a knock waiting here." };
+  if (ctx.existingStatus === "ACCEPTED") return { error: "You're already in." };
+  if (ctx.usedToday >= ctx.cap) {
+    return { error: `${ctx.project.author.name}'s inbox is full for today. Try again tomorrow.` };
+  }
+
+  await prisma.knock.create({
+    data: {
+      projectId,
+      fromId: user.id,
+      toId: ctx.project.author.id,
+      viaId: ctx.path.via?.id ?? null,
+      message: body,
+    },
+  });
+  revalidatePath("/knocks");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function respondToKnock(knockId: string, accept: boolean) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not signed in" };
+
+  const knock = await prisma.knock.findUnique({
+    where: { id: knockId },
+    include: { project: { select: { title: true } } },
+  });
+  if (!knock || knock.toId !== user.id || knock.status !== "PENDING") {
+    return { error: "This knock can't be answered." };
+  }
+
+  await prisma.knock.update({
+    where: { id: knockId },
+    data: { status: accept ? "ACCEPTED" : "DECLINED", respondedAt: new Date() },
+  });
+
+  let conversationId: string | undefined;
+  if (accept) {
+    // Letting someone in opens a DM seeded with their knock, so the context
+    // they wrote carries into the first real conversation.
+    conversationId = await getOrCreateConversation(user.id, knock.fromId);
+    await prisma.message.create({
+      data: {
+        conversationId,
+        authorId: knock.fromId,
+        body: `Knock on ${knock.project.title ?? "your project"}: ${knock.message}`,
+        createdAt: knock.createdAt,
+      },
+    });
+    await prisma.message.create({
+      data: { conversationId, authorId: user.id, body: "Let you in! Let's talk about where to start." },
+    });
+  }
+
+  revalidatePath("/knocks");
+  revalidatePath("/messages");
+  revalidatePath("/", "layout");
+  return { ok: true, conversationId };
+}
+
+export async function setKnockCap(cap: number) {
+  const user = await getCurrentUser();
+  if (!user) return;
+  const safe = Math.max(1, Math.min(20, Math.round(cap)));
+  await prisma.user.update({ where: { id: user.id }, data: { knockCap: safe } });
+  revalidatePath("/knocks");
 }

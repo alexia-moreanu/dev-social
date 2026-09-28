@@ -3,6 +3,7 @@ import Avatar from "@/components/Avatar";
 import TagPill from "@/components/TagPill";
 import VoteButton from "@/components/VoteButton";
 import CopyButton from "@/components/CopyButton";
+import KnockButton from "@/components/KnockButton";
 import { CommentIcon } from "@/components/nav/icons";
 import { timeAgo, formatStars } from "@/lib/format";
 import { highlight } from "@/lib/highlight";
@@ -55,6 +56,11 @@ export default function PostCard({ post, linkToDetail = true }: { post: FeedPost
             <CommentIcon className="w-5 h-5" />
             <span className="text-sm font-medium">{post.commentCount}</span>
           </span>
+        )}
+        {post.type === "PROJECT" && !post.isMine && (
+          <div className="ml-auto">
+            <KnockButton projectId={post.id} initialStatus={post.myKnockStatus} />
+          </div>
         )}
       </div>
 
@@ -161,6 +167,11 @@ function PostMedia({ post, linkToDetail }: { post: FeedPost; linkToDetail: boole
                 <span className="text-xs text-purple-400 shrink-0">{post.repoLang}</span>
               )}
             </a>
+          )}
+          {post.lookingFor && (
+            <div className="mt-2 text-sm rounded-xl bg-accent-dim/10 border border-accent-dim/40 text-accent px-3 py-2">
+              Looking for: {post.lookingFor}
+            </div>
           )}
         </div>
       );

@@ -1,68 +1,76 @@
 # dev/social
 
-Social media built for developers, in the age of AI — Twitter's brevity, Reddit's
-threads, GitHub's context, Instagram's visual feel, and Hacker News' trust in
-substance over polish, in one app.
+**Meet before the pull request.** A social layer for developers to show their
+work, find people through people, and ask to join projects with context
+instead of cold pull requests.
 
-## Surfaces
+## ▶ Start here: the pitch deck
 
-- **Home** (`/`) — one feed, six kinds of posts: **project** (GitHub-style repo
-  card), **snippet** (syntax highlighted code), **tip** (copy-to-clipboard
-  command), **clip** (short-form video), **link** (news, with your commentary),
-  **update** (short text). Story circles up top, Hot/New/Top/**For You**
-  sorting, a Following filter.
-- **Reels** (`/reels`) — full-viewport, swipeable vertical video feed, clips only.
-- **News** (`/news`) — link posts only, headline-first.
-- **Learn** (`/learn`) — tips + snippets, filterable by tag — the resource/education feed.
-- **Web** (`/web`) — your social graph as an actual force-directed node graph:
-  who you follow, who follows you, and who you're similar to but not yet
-  connected with (dashed edges). Drag nodes, click one to visit their profile.
-- **Messages** (`/messages`) — 1:1 DMs, Slack/Discord-style two-pane layout,
-  lightweight polling for a "live" feel without websockets.
+**[View the 5-slide deck → alexia-moreanu.github.io/dev-social](https://alexia-moreanu.github.io/dev-social/)**
 
-**For You**, **devs like you**, **projects for you**, and the similarity edges
-on the web graph are all powered by one lightweight recommendation model: a
-tag-affinity vector per user built from what they've posted, upvoted, and
-commented on, compared via cosine similarity.
+| Slide | What it covers |
+|---|---|
+| 1 · The insight | AI made code cheap and trust expensive: merged PRs on GitHub went from 25M to 90M a month, and maintainers can now switch PRs off |
+| 2 · User & pain | The solo builder, a journey that leaks at every step, and why people join people |
+| 3 · Market & strategy | The empty corner where proof of work meets a social graph, and why Google |
+| 4 · Solution & MVP | One loop (Show → Find → Knock → Build → Vouch), priorities, and what I cut on purpose |
+| 5 · GTM, metrics & risks | Phased rollout with gates, North Star, counter-metrics, and risks |
 
-## Stack
+Use ← → to navigate, **N** for speaker notes, **P** to save as PDF.
+Tell me where it breaks: **[give feedback](https://github.com/alexia-moreanu/dev-social/issues/new?template=feedback.yml)**.
 
-- Next.js (App Router) + TypeScript + Tailwind CSS
-- Prisma + SQLite for local dev (swap the `datasource` in
-  [`prisma/schema.prisma`](prisma/schema.prisma) and `DATABASE_URL` in `.env`
-  to point at Postgres for production — the schema itself needs no changes)
-- `d3-force` for the network graph layout (client-side only, so its physics
-  never has to match between server and browser)
-- No auth yet — a "demo mode" user switcher (nav rail / mobile top bar) lets
-  you act as any seeded user via a cookie, so the whole social graph (follows,
-  votes, comments, DMs) is fully interactive without wiring up real accounts
+## The prototype
 
-## Getting started
+A working Next.js app that implements the core loop from the deck.
+
+- **Knock** (`/knocks`), the core idea. Instead of a cold PR, you ask to join
+  a project with at least 40 characters of context. The dialog shows your warm
+  path to the maintainer ("you → Ada → Mira") and how many knocks they have
+  left today. Maintainers set their own daily limit, then **Let in** (which
+  opens a DM seeded with your knock) or **Not now**.
+- **Home** (`/`): one feed of projects (with GitHub repo card and "looking
+  for" ask), code snippets, tips, 60s clips, links, and updates. Sort by
+  Hot / New / Top / **For You**.
+- **Web** (`/web`): your social graph as a force-directed node graph, inspired
+  by Obsidian. Dashed edges show people you're similar to but not yet connected with.
+- **Reels** (`/reels`), **Learn** (`/learn`), **News** (`/news`),
+  **Messages** (`/messages`).
+
+For You, "devs like you", "projects for you", and the Web's similarity edges
+all come from one recommendation model: a tag-affinity vector per user built
+from what they post, like, and comment on, compared by cosine similarity.
+
+### Run it locally
 
 ```bash
 npm install
-npm run seed   # 14 fake users, ~45 posts, votes, comments, follows, DM threads
+npm run seed   # 14 demo users, ~45 posts, follows, DMs, and knocks
 npm run dev
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). There's no auth yet:
+use **switch user** in the nav to act as any demo user. Try switching to
+`mira_k` to answer knocks on her project, then to another user to send one.
 
-## Project structure
+### Stack
 
-- `prisma/schema.prisma` — data model (users, posts, tags, votes, comments, follows, conversations/messages)
-- `prisma/seed.ts` — seed data generator
-- `src/lib/affinity.ts` — the recommendation model (tag-affinity vectors, cosine similarity)
-- `src/lib/graph.ts` — builds the node/edge data for the `/web` social graph
-- `src/lib/posts.ts` — feed query + ranking (hot / new / top / for-you)
-- `src/lib/conversations.ts` — DM conversation queries
-- `src/lib/actions.ts` — server actions (vote, comment, follow, submit post, messages, switch user)
-- `src/components/PostCard.tsx` — renders each post type differently
-- `src/components/NetworkGraph.tsx` — the draggable force-directed graph
-- `src/components/nav/` — desktop icon rail, mobile top bar, mobile bottom tab bar
-- `src/app/` — routes: `/`, `/reels`, `/news`, `/learn`, `/web`, `/messages`, `/post/[id]`, `/u/[username]`, `/submit`
+- Next.js (App Router), TypeScript, Tailwind CSS
+- Prisma + SQLite locally (point the `datasource` in
+  [`prisma/schema.prisma`](prisma/schema.prisma) at Postgres for production)
+- `d3-force` for the graph layout
 
-## What's not built yet
+### Project structure
 
-Real auth, real video upload (clips use placeholder video/poster assets), live
-GitHub API sync for repo stats (currently seeded as static numbers), group
-chats/channels (DMs are 1:1 only), and search.
+- `docs/index.html`: the pitch deck (served by GitHub Pages)
+- `prisma/schema.prisma`: data model, including `Knock`
+- `src/lib/knocks.ts`: warm-path lookup, daily cap, knock inbox queries
+- `src/lib/affinity.ts`: the recommendation model
+- `src/lib/graph.ts`: node/edge data for the Web graph
+- `src/lib/actions.ts`: server actions (knock, vote, comment, follow, post, messages)
+- `src/components/KnockButton.tsx`: the knock dialog
+- `src/app/`: routes
+
+### Not built yet
+
+Vouch (after a first merge), GitHub verification of merges, real auth, video
+upload (clips use placeholder media), and live GitHub repo stats.

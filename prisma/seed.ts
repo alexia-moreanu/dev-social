@@ -52,6 +52,7 @@ function daysAgo(d: number) {
 
 async function main() {
   console.log("Clearing existing data...");
+  await prisma.knock.deleteMany();
   await prisma.message.deleteMany();
   await prisma.conversationParticipant.deleteMany();
   await prisma.conversation.deleteMany();
@@ -388,6 +389,18 @@ async function main() {
     },
   ];
 
+  const LOOKING_FOR: Record<string, string> = {
+    "https://github.com/mirak/kvlite": "1 dev who knows LSM compaction",
+    "https://github.com/leomartins/homelab-gitops": "someone to write the ARM64 setup docs",
+    "https://github.com/priyanair/tinyrag": "a contributor for eval + benchmark scripts",
+    "https://github.com/yukiterm/dotfiles": "testers on Linux and WSL",
+    "https://github.com/adachen/leakscan": "help adding new provider key patterns",
+    "https://github.com/renfischer/promptdiff": "a frontend dev for the diff viewer",
+    "https://github.com/theobrandt/ziglet": "a second pair of eyes on HTTP/1.1 edge cases",
+    "https://github.com/oliviabennett/littlelang": "first-timers: good starter issues tagged",
+  };
+  const projectByRepo = new Map<string, { id: string; authorId: string }>();
+
   console.log("Creating posts...");
   for (const p of posts) {
     const author = userByUsername.get(p.author)!;
@@ -402,6 +415,7 @@ async function main() {
       repoUrl: p.repoUrl,
       repoStars: p.repoStars,
       repoLang: p.repoLang,
+      lookingFor: p.repoUrl ? LOOKING_FOR[p.repoUrl] : undefined,
       linkUrl: p.linkUrl,
       linkDomain: p.linkDomain,
       createdAt: daysAgo(p.age),
@@ -411,6 +425,7 @@ async function main() {
       data.poster = poster(p.posterSeed ?? p.author);
     }
     const post = await prisma.post.create({ data });
+    if (p.repoUrl) projectByRepo.set(p.repoUrl, { id: post.id, authorId: author.id });
 
     await Promise.all(
       p.tags.map((tagName) => {
@@ -545,7 +560,49 @@ async function main() {
     }
   }
 
-  console.log(`Seeded ${users.length} users, ${tagRecords.length} tags, ${posts.length} posts, ${exchanges.length} conversations.`);
+  console.log("Creating knocks...");
+  const allFollows = await prisma.follow.findMany({ select: { followerId: true, followingId: true } });
+  const neighbors = (id: string) =>
+    new Set(allFollows.flatMap((f) => (f.followerId === id ? [f.followingId] : f.followingId === id ? [f.followerId] : [])));
+  const sharedConnection = (a: string, b: string) => {
+    const nb = neighbors(b);
+    return [...neighbors(a)].find((id) => nb.has(id) && id !== a && id !== b) ?? null;
+  };
+
+  const knockSeeds: { from: string; repo: string; status: "PENDING" | "ACCEPTED" | "DECLINED"; hoursAgo: number; message: string }[] = [
+    { from: "theo_zig", repo: "https://github.com/mirak/kvlite", status: "PENDING", hoursAgo: 3,
+      message: "I wrote a toy LSM tree in Zig last year and hit the same tombstone GC problems. Happy to review the compaction logic before touching any code." },
+    { from: "olivia.rs", repo: "https://github.com/mirak/kvlite", status: "ACCEPTED", hoursAgo: 70,
+      message: "I'd love to help with the Rust side. I can add property-based tests for the memtable so compaction bugs show up earlier." },
+    { from: "devondavis", repo: "https://github.com/renfischer/promptdiff", status: "PENDING", hoursAgo: 5,
+      message: "I build diff viewers at work (React + CodeMirror). I'd like to take the side-by-side view for comparing prompt versions." },
+    { from: "sam_builds", repo: "https://github.com/adachen/leakscan", status: "PENDING", hoursAgo: 20,
+      message: "I once leaked a Stripe key from a side project. I'd like to add patterns for Stripe restricted keys and Supabase service keys." },
+    { from: "hana_swift", repo: "https://github.com/yukiterm/dotfiles", status: "DECLINED", hoursAgo: 50,
+      message: "I'd like to port the tmux + fzf setup to macOS defaults and write up the differences for people coming from iTerm." },
+    { from: "mira_k", repo: "https://github.com/oliviabennett/littlelang", status: "PENDING", hoursAgo: 8,
+      message: "I've always wanted to understand unification properly. Could I take one of the starter issues on better type error messages?" },
+  ];
+
+  for (const k of knockSeeds) {
+    const from = userByUsername.get(k.from)!;
+    const project = projectByRepo.get(k.repo)!;
+    const createdAt = new Date(Date.now() - k.hoursAgo * 3600_000);
+    await prisma.knock.create({
+      data: {
+        projectId: project.id,
+        fromId: from.id,
+        toId: project.authorId,
+        viaId: sharedConnection(from.id, project.authorId),
+        message: k.message,
+        status: k.status,
+        createdAt,
+        respondedAt: k.status === "PENDING" ? null : new Date(createdAt.getTime() + 3600_000),
+      },
+    });
+  }
+
+  console.log(`Seeded ${users.length} users, ${tagRecords.length} tags, ${posts.length} posts, ${exchanges.length} conversations, ${knockSeeds.length} knocks.`);
 }
 
 main()

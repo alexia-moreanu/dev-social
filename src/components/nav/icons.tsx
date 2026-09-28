@@ -95,6 +95,16 @@ export function SendIcon({ className }: IconProps) {
   );
 }
 
+export function KnockIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...common}>
+      <path d="M6 21V4a1 1 0 011-1h10a1 1 0 011 1v17" />
+      <path d="M3 21h18" />
+      <circle cx="14.5" cy="12" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function MoreIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor">
